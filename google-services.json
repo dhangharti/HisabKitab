@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63519478087",
+    "project_id": "studio-9464494046-3c19d",
+    "storage_bucket": "studio-9464494046-3c19d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63519478087:android:7b882e78ab0defe2af3c62",
+        "android_client_info": {
+          "package_name": "geeta.vyoma"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKyF_Ghwnw_WW26QD1x4If9fqh3Mak4Lg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
