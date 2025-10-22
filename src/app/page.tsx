@@ -1,4 +1,6 @@
+
 "use client";
+
 import * as React from 'react';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
@@ -50,7 +52,7 @@ import { useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { setDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -240,7 +242,7 @@ export default function Home() {
       if (loan.id === loanId) {
         const updatedLoan = { ...loan, [field]: value };
          // Regenerate schedule if core details change
-        if (['principal', 'rate', 'years', 'startDateYear', 'startDateMonth'].includes(field)) {
+        if (['principal', 'rate', 'years', 'startDateYear', 'startDateMonth'].includes(field as string)) {
             updatedLoan.schedule = generateLoanSchedule(updatedLoan);
         }
         return updatedLoan;
@@ -390,7 +392,11 @@ export default function Home() {
   const handleBudgetSave = (newAllocation: { needs: number, investments: number, wants: number }) => {
     const total = newAllocation.needs + newAllocation.investments + newAllocation.wants;
     if (total !== 100) {
-      alert('The total allocation must be 100%.');
+      toast({
+        variant: "destructive",
+        title: "Invalid Allocation",
+        description: "The total allocation must be 100%.",
+      });
       return;
     }
     setBudgetAllocation(newAllocation);
@@ -414,7 +420,7 @@ export default function Home() {
             dashboardName={dashboardName}
             syncStatus={syncStatus}
             familyId={familyId}
-            onSignOut={() => auth.signOut()}
+            onSignOut={() => auth?.signOut()}
           />
 
           <main className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
