@@ -88,7 +88,7 @@ export default function Home() {
 
 
   useEffect(() => {
-    if(user && firestore) {
+    if(user && firestore && syncStatus !== 'synced-cloud' && syncStatus !== 'error') {
       setSyncStatus('loading');
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then(docSnap => {
@@ -127,7 +127,7 @@ export default function Home() {
           });
       });
     }
-  }, [user, firestore, toast]);
+  }, [user, firestore, toast, syncStatus]);
 
   const saveData = (newAppData: AppData) => {
     setAppData(newAppData);
