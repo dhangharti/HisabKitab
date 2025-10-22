@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase/provider';
-import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { initiateEmailSignIn } from '@/firebase';
 
@@ -30,7 +29,6 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { auth, user, isUserLoading } = useFirebase();
   const router = useRouter();
-  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,18 +44,9 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth) return;
-    try {
-      initiateEmailSignIn(auth, values.email, values.password);
-    } catch (error: any) {
-      console.error('Sign in error', error);
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message || 'There was a problem with your sign-in.',
-      });
-    }
+    initiateEmailSignIn(auth, values.email, values.password);
   }
 
   return (
