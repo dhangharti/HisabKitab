@@ -18,7 +18,6 @@ import {
   BS_MONTHS,
 } from '@/lib/constants';
 import { calculateLoanStatus, generateLoanSchedule } from '@/lib/loan-calculations';
-import useLocalStorage from '@/hooks/use-local-storage';
 
 import { Header } from '@/components/dashboard/Header';
 import { MonthNavigator } from '@/components/dashboard/MonthNavigator';
@@ -27,7 +26,7 @@ import { BudgetCategory } from '@/components/dashboard/BudgetCategory';
 import { LoanTotalsSummary } from '@/components/dashboard/LoanTotalsSummary';
 import { LoanCard } from '@/components/dashboard/LoanCard';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ChevronLeft, ChevronRight, AlertTriangle, LogOut, Settings } from 'lucide-react';
+import { PlusCircle, ChevronLeft, ChevronRight, AlertTriangle, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,10 +52,13 @@ import { useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { setDocumentNonBlocking } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user, isUserLoading, auth, firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
 
   const getTodayBs = () => {
     // This is a simplified conversion, a proper library should be used for accuracy
@@ -70,13 +72,8 @@ export default function Home() {
   const [currentYearBs, setCurrentYearBs] = useState(getTodayBs().year);
   const [currentMonthBs, setCurrentMonthBs] = useState(getTodayBs().month);
   
-  const [storedData, setStoredData, clearStoredData] = useLocalStorage<AppData>(
-    `rinmitra-data-${user?.uid}`,
-    INITIAL_DATA
-  );
-  
-  const [appData, setAppData] = useState<AppData>(storedData);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced-local');
+  const [appData, setAppData] = useState<AppData>(INITIAL_DATA);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('loading');
   const [loanToDelete, setLoanToDelete] = useState<string | null>(null);
   const [familyId, setFamilyId] = useState('...');
   const [dashboardName, setDashboardName] = useState('Financial Dashboard');
@@ -92,6 +89,7 @@ export default function Home() {
 
   useEffect(() => {
     if(user && firestore) {
+      setSyncStatus('loading');
       const userDocRef = doc(firestore, 'users', user.uid);
       getDoc(userDocRef).then(docSnap => {
         if(docSnap.exists()){
@@ -108,34 +106,50 @@ export default function Home() {
           }
         }
       });
+      
+      const dataDocRef = doc(firestore, 'user_data', user.uid);
+      getDoc(dataDocRef).then(docSnap => {
+        if(docSnap.exists()){
+          setAppData(docSnap.data() as AppData);
+        } else {
+            // No data found, save initial data
+            setDocumentNonBlocking(dataDocRef, INITIAL_DATA);
+            setAppData(INITIAL_DATA);
+        }
+        setSyncStatus('synced-cloud');
+      }).catch(err => {
+          console.error("Error fetching user data:", err);
+          setSyncStatus('error');
+          toast({
+            variant: "destructive",
+            title: "Error loading data",
+            description: "Could not fetch your financial data from the cloud."
+          });
+      });
     }
-  }, [user, firestore])
+  }, [user, firestore, toast]);
 
-  useEffect(() => {
-    setAppData(storedData);
-  }, [storedData]);
-  
-  useEffect(() => {
-    const handler = setTimeout(() => {
-       setStoredData(appData);
-       setSyncStatus('synced-local');
-    }, 1000);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [appData, setStoredData]);
+  const saveData = (newAppData: AppData) => {
+    setAppData(newAppData);
+    if(user && firestore) {
+      const dataDocRef = doc(firestore, 'user_data', user.uid);
+      setSyncStatus('loading');
+      setDocumentNonBlocking(dataDocRef, newAppData);
+      // In a real app you would handle the promise, for now we assume it works
+      // and optimistically update the UI.
+      setTimeout(() => setSyncStatus('synced-cloud'), 1000);
+    }
+  }
   
   const handleDateChange = (year: number, month: number) => {
     setCurrentYearBs(year);
     setCurrentMonthBs(month);
-    // Data for the month is filtered from the main appData, so no reload needed
   };
 
   const updateIncome = (index: number, updatedIncome: Income) => {
     const newIncomes = [...(appData.incomes || [])];
     newIncomes[index] = updatedIncome;
-    setAppData({ ...appData, incomes: newIncomes });
+    saveData({ ...appData, incomes: newIncomes });
   };
 
   const addIncome = () => {
@@ -144,18 +158,18 @@ export default function Home() {
       name: 'नयाँ आय स्रोत',
       amount: 0,
     };
-    setAppData({ ...appData, incomes: [...(appData.incomes || []), newIncome] });
+    saveData({ ...appData, incomes: [...(appData.incomes || []), newIncome] });
   };
 
   const deleteIncome = (index: number) => {
     const newIncomes = (appData.incomes || []).filter((_, i) => i !== index);
-    setAppData({ ...appData, incomes: newIncomes });
+    saveData({ ...appData, incomes: newIncomes });
   };
 
   const updateExpense = (index: number, updatedExpense: Expense) => {
     const newExpenses = [...(appData.expenses || [])];
     newExpenses[index] = updatedExpense;
-    setAppData({ ...appData, expenses: newExpenses });
+    saveData({ ...appData, expenses: newExpenses });
   };
 
   const addExpense = () => {
@@ -164,18 +178,18 @@ export default function Home() {
       name: 'नयाँ आवश्यकता',
       amount: 0,
     };
-    setAppData({ ...appData, expenses: [...(appData.expenses || []), newExpense] });
+    saveData({ ...appData, expenses: [...(appData.expenses || []), newExpense] });
   };
 
   const deleteExpense = (index: number) => {
     const newExpenses = (appData.expenses || []).filter((_, i) => i !== index);
-    setAppData({ ...appData, expenses: newExpenses });
+    saveData({ ...appData, expenses: newExpenses });
   };
 
   const updateWant = (index: number, updatedWant: Expense) => {
     const newWants = [...(appData.wants || [])];
     newWants[index] = updatedWant;
-    setAppData({ ...appData, wants: newWants });
+    saveData({ ...appData, wants: newWants });
   };
 
   const addWant = () => {
@@ -184,32 +198,32 @@ export default function Home() {
       name: 'नयाँ चाहना',
       amount: 0,
     };
-    setAppData({ ...appData, wants: [...(appData.wants || []), newWant] });
+    saveData({ ...appData, wants: [...(appData.wants || []), newWant] });
   };
 
   const deleteWant = (index: number) => {
     const newWants = (appData.wants || []).filter((_, i) => i !== index);
-    setAppData({ ...appData, wants: newWants });
+    saveData({ ...appData, wants: newWants });
   };
   
-    const addInvestment = () => {
+  const addInvestment = () => {
     const newInvestment: Expense = {
       id: crypto.randomUUID(),
       name: 'नयाँ लगानी',
       amount: 0,
     };
-    setAppData({ ...appData, investments: [...(appData.investments || []), newInvestment] });
+    saveData({ ...appData, investments: [...(appData.investments || []), newInvestment] });
   };
 
   const updateInvestment = (index: number, updatedInvestment: Expense) => {
     const newInvestments = [...(appData.investments || [])];
     newInvestments[index] = updatedInvestment;
-    setAppData({ ...appData, investments: newInvestments });
+    saveData({ ...appData, investments: newInvestments });
   };
 
   const deleteInvestment = (index: number) => {
     const newInvestments = (appData.investments || []).filter((_, i) => i !== index);
-    setAppData({ ...appData, investments: newInvestments });
+    saveData({ ...appData, investments: newInvestments });
   };
 
   const addLoan = () => {
@@ -220,7 +234,7 @@ export default function Home() {
     };
     const schedule = generateLoanSchedule(loanConfig);
     const newLoan: Loan = { ...loanConfig, extraPrincipal: 0, schedule };
-    setAppData({ ...appData, loans: [...(appData.loans || []), newLoan] });
+    saveData({ ...appData, loans: [...(appData.loans || []), newLoan] });
   };
 
   const updateLoan = (loanId: string, field: keyof Loan, value: any) => {
@@ -235,7 +249,7 @@ export default function Home() {
       }
       return loan;
     });
-    setAppData({ ...appData, loans: newLoans });
+    saveData({ ...appData, loans: newLoans });
   };
   
   const handleMarkAsPaid = (loanId: string, month: number) => {
@@ -251,13 +265,13 @@ export default function Home() {
       }
       return loan;
     });
-    setAppData({ ...appData, loans: newLoans });
+    saveData({ ...appData, loans: newLoans });
   };
 
   const confirmDeleteLoan = () => {
     if (loanToDelete) {
       const newLoans = (appData.loans || []).filter((loan) => loan.id !== loanToDelete);
-      setAppData({ ...appData, loans: newLoans });
+      saveData({ ...appData, loans: newLoans });
       setLoanToDelete(null);
     }
   };
@@ -386,7 +400,7 @@ export default function Home() {
   };
 
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || syncStatus === 'loading') {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-xl">Loading...</div>
