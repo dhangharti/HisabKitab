@@ -1,6 +1,7 @@
 'use client';
 
-import { firebaseConfig } from '@/firebase/config';
+// ALWAYS use the production config to ensure deployment works.
+import { firebaseConfig } from '@/firebase/prod-config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -11,7 +12,7 @@ export function initializeFirebase() {
     return getSdks(getApp());
   }
 
-  // Always initialize with the config from firebase/config.ts
+  // Always initialize with the validated production config.
   const app = initializeApp(firebaseConfig);
   return getSdks(app);
 }
