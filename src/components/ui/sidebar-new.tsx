@@ -62,15 +62,28 @@ export const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
-    const setOpen = React.useCallback(
+    // Hydration-safe state for sidebar open/closed status
+    const [open, setOpen] = React.useState(defaultOpen)
+    
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+                ?.split('=')[1];
+            if (cookieValue) {
+                setOpen(cookieValue === 'true');
+            }
+        }
+    }, []);
+
+    const handleSetOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
         if (setOpenProp) {
           setOpenProp(openState)
         } else {
-          _setOpen(openState)
+          setOpen(openState)
         }
         if (typeof document !== 'undefined') {
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
@@ -81,9 +94,9 @@ export const SidebarProvider = React.forwardRef<
 
     const toggleSidebar = React.useCallback(() => {
       return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+        ? setOpenMobile((current) => !current)
+        : handleSetOpen((current) => !current)
+    }, [isMobile, handleSetOpen, setOpenMobile])
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -105,13 +118,13 @@ export const SidebarProvider = React.forwardRef<
       () => ({
         state,
         open,
-        setOpen,
+        setOpen: handleSetOpen,
         isMobile,
         openMobile,
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, handleSetOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
     return (
@@ -227,6 +240,11 @@ export const Sidebar = React.forwardRef<
           {children}
         </div>
       )
+    }
+    
+    // Guard against rendering on the server when mobile status is unknown
+    if (isMobile === undefined) {
+      return null;
     }
 
     if (isMobile) {
@@ -398,3 +416,5 @@ export const SidebarInset = React.forwardRef<
     )
 })
 SidebarInset.displayName = "SidebarInset";
+
+    
