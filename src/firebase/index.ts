@@ -11,17 +11,8 @@ export function initializeFirebase() {
     return getSdks(getApp());
   }
 
-  // When deployed to Vercel, environment variables are used.
-  // In a local environment, it falls back to the firebaseConfig object.
-  const prodConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  };
-
-  const shouldUseProdConfig = !!(prodConfig.apiKey && prodConfig.authDomain && prodConfig.projectId);
-
-  const app = initializeApp(shouldUseProdConfig ? prodConfig : firebaseConfig);
+  // Always initialize with the config from firebase/config.ts
+  const app = initializeApp(firebaseConfig);
   return getSdks(app);
 }
 
