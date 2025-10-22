@@ -9,12 +9,10 @@ import { PanelLeft } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
@@ -257,7 +255,7 @@ export const Sidebar = React.forwardRef<
         ref={ref}
         className={cn(
             "group peer hidden md:flex md:flex-col text-card-foreground",
-            "w-[16rem] h-screen",
+            "w-[16rem] h-screen transition-all duration-300 ease-in-out",
             !open && "w-[3.5rem]",
             className
         )}
