@@ -1,0 +1,122 @@
+
+{
+  "entities": {
+    "UserAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAccount",
+      "type": "object",
+      "description": "Represents a user account within the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user account."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "dashboardName": {
+          "type": "string",
+          "description": "Custom name for the user's dashboard."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "User's phone number."
+        },
+        "familyGroupId": {
+          "type": "string",
+          "description": "Reference to the FamilyGroup the user belongs to. (Relationship: FamilyGroup 1:N UserAccount)"
+        },
+        "language": {
+          "type": "string",
+          "description": "Preferred language of the user (e.g., 'en', 'ne', 'hi')."
+        },
+        "financeOption": {
+          "type": "string",
+          "description": "User's chosen finance management option (e.g., '50/40/10', 'flexible')."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "dashboardName",
+        "language",
+        "financeOption"
+      ]
+    },
+    "FamilyGroup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FamilyGroup",
+      "type": "object",
+      "description": "Represents a family group for shared financial management.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the family group."
+        },
+        "groupCode": {
+          "type": "string",
+          "description": "Code used to join the family group."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the family group."
+        }
+      },
+      "required": [
+        "id",
+        "groupCode",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserAccount",
+          "schema": {
+            "$ref": "#/backend/entities/UserAccount"
+          },
+          "description": "Stores user account information. Includes denormalized 'familyGroupId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/family_groups/{familyGroupId}",
+        "definition": {
+          "entityName": "FamilyGroup",
+          "schema": {
+            "$ref": "#/backend/entities/FamilyGroup"
+          },
+          "description": "Stores information about family groups.",
+          "params": [
+            {
+              "name": "familyGroupId",
+              "description": "The unique identifier for the family group."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support the RinMitra application's financial management features, focusing on secure access, data consistency, and efficient querying. It incorporates the principles of Authorization Independence, Structural Segregation, and Access Modeling to ensure a robust and maintainable database. The denormalization strategy involves copying authorization-related data (family group membership) into user accounts to avoid hierarchical authorization dependencies and enable atomic operations.\n\n**Authorization Independence:** The `UserAccount` document contains the `familyGroupId`. This denormalization avoids the need for security rules to `get()` the `FamilyGroup` document to check membership, crucial for atomic operations.\n\n**Structural Segregation:** Separate collections are used for `UserAccount` and `FamilyGroup` to reflect their distinct security requirements. User-specific data is stored under the `/users/{userId}` path, ensuring private access.\n\n**Access Modeling:** Path-based ownership is used for user accounts (`/users/{userId}/accounts/{accountId}`), providing inherent security. Family group membership is managed by storing the group ID within the user account document.\n\n**QAPs (Query Authorization Principles):**\n*   Secure `list` operations are supported for user accounts by enforcing that only the authenticated user can access their own account data.\n*   Listing family groups is restricted, ensuring that unauthorized users cannot enumerate all available groups. The application will provide ways for authenticated users to see the family groups they belong to using the `familyGroupId` property in `UserAccount`.\n\n**Invariants:**\n*   Ownership is enforced via path-based rules for user accounts.\n*   Timestamps are not explicitly included in this initial design, but could be added to documents to track creation and modification times.\n*   Denormalized data (e.g., `familyGroupId` in `UserAccount`) must be updated consistently using batched writes or transactions to maintain data integrity."
+  }
+}
