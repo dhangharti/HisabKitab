@@ -19,7 +19,7 @@ export function initializeFirebase() {
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   };
 
-  const shouldUseProdConfig = prodConfig.apiKey && prodConfig.authDomain && prodConfig.projectId;
+  const shouldUseProdConfig = !!(prodConfig.apiKey && prodConfig.authDomain && prodConfig.projectId);
 
   const app = initializeApp(shouldUseProdConfig ? prodConfig : firebaseConfig);
   return getSdks(app);
