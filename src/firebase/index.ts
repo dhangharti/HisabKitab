@@ -6,7 +6,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+// IMPORTANT: This simplified function ensures the correct config is always used.
 export function initializeFirebase() {
   if (getApps().length > 0) {
     return getSdks(getApp());
