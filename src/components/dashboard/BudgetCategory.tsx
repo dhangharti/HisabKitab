@@ -15,13 +15,34 @@ type BudgetCategoryProps = {
   budget: number;
   spent: number;
   remaining: number;
-  colorClass: string;
+  colorClass: 'primary-red' | 'primary-green' | 'primary-blue';
   items: (Income | Expense)[];
   onAddItem: () => void;
   onUpdateItem: (index: number, item: Income | Expense) => void;
   onDeleteItem: (index: number) => void;
   buttonText: string;
   loanPrincipal?: number;
+};
+
+const colorStyles = {
+    'primary-red': {
+        card: 'border-destructive',
+        cardHeader: 'text-primary-red',
+        progress: '[&>*]:bg-primary-red',
+        button: 'border-primary-red text-primary-red hover:bg-primary-red/10',
+    },
+    'primary-green': {
+        card: 'border-primary-green/50',
+        cardHeader: 'text-primary-green',
+        progress: '[&>*]:bg-primary-green',
+        button: 'border-primary-green text-primary-green hover:bg-primary-green/10',
+    },
+    'primary-blue': {
+        card: 'border-primary-blue/50',
+        cardHeader: 'text-primary-blue',
+        progress: '[&>*]:bg-primary-blue',
+        button: 'border-primary-blue text-primary-blue hover:bg-primary-blue/10',
+    }
 };
 
 export const BudgetCategory: React.FC<BudgetCategoryProps> = ({
@@ -41,11 +62,13 @@ export const BudgetCategory: React.FC<BudgetCategoryProps> = ({
   const progressValue = budget > 0 ? (spent / budget) * 100 : 0;
   const isOverBudget = remaining < 0;
 
+  const styles = colorStyles[colorClass] || colorStyles['primary-blue'];
+
   return (
-    <Card className={cn("border-2", isOverBudget ? 'border-destructive' : `border-${colorClass}/50`)}>
+    <Card className={cn("border-2", isOverBudget ? styles.card : `border-${colorClass}/50`)}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-            <CardTitle className={`text-${colorClass}`}>{title} - {rule}</CardTitle>
+            <CardTitle className={cn(styles.cardHeader)}>{title} - {rule}</CardTitle>
             {isOverBudget && <AlertTriangle className="h-6 w-6 text-destructive" />}
         </div>
         <div className="text-sm text-muted-foreground">
@@ -60,7 +83,7 @@ export const BudgetCategory: React.FC<BudgetCategoryProps> = ({
                     बाँकी: रू {remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </span>
             </div>
-          <Progress value={progressValue} className={`[&>*]:bg-${colorClass}`} />
+          <Progress value={progressValue} className={cn(styles.progress)} />
         </div>
         
         <div className="space-y-2 max-h-48 overflow-y-auto pr-2 border-t pt-4">
@@ -85,7 +108,7 @@ export const BudgetCategory: React.FC<BudgetCategoryProps> = ({
         <Button
           onClick={onAddItem}
           variant="outline"
-          className={cn('w-full mt-2', `border-${colorClass}`, `text-${colorClass}`, `hover:bg-${colorClass}/10`)}
+          className={cn('w-full mt-2', styles.button)}
         >
           <Plus className="h-4 w-4 mr-2" />
           {buttonText}
