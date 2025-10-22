@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -22,6 +23,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // This effect runs only on the client, after the initial render
     setIsMounted(true);
     const init = async () => {
       const services = await initializeFirebase();
@@ -31,17 +33,13 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     init();
   }, []);
 
+  // While not mounted on client or while services are initializing, render nothing.
+  // This prevents a mismatch between server-rendered HTML and client-rendered HTML.
   if (!isMounted || !firebaseServices) {
-    // Child components are responsible for their own loading UI, 
-    // but we need to provide something for the initial render to avoid mismatches.
-    // Returning null while the server renders children causes the hydration error.
-    // We will let the pages themselves show a loading indicator.
-    // However, until firebaseServices are ready, the children can't render correctly.
-    // Let's render children, but the hooks within them will handle the loading state.
-    // This can still be tricky. The safest bet is to wait for mount.
-    return null; // Don't render children until mounted and services are ready.
+    return null; 
   }
 
+  // Once mounted and services are ready, provide them to the rest of the app.
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}
