@@ -1,9 +1,11 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void, () => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
+  
+  const readValue = useCallback((): T => {
     if (typeof window === 'undefined') {
       return initialValue;
     }
@@ -11,22 +13,19 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(error);
+      console.warn(`Error reading localStorage key “${key}”:`, error);
       return initialValue;
     }
-  });
+  }, [initialValue, key]);
 
-  useEffect(() => {
-     try {
-      const item = window.localStorage.getItem(key);
-      setStoredValue(item ? JSON.parse(item) : initialValue);
-    } catch (error) {
-      console.error(error);
-      setStoredValue(initialValue);
-    }
-  }, [key, initialValue]);
+  const [storedValue, setStoredValue] = useState<T>(readValue);
 
   const setValue = (value: T) => {
+    if (typeof window == 'undefined') {
+      console.warn(
+        `Tried setting localStorage key “${key}” even though environment is not a client`
+      );
+    }
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
@@ -37,16 +36,22 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
       console.error(error);
     }
   };
-
+  
   const clearValue = () => {
     try {
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem(key);
+            setStoredValue(initialValue);
         }
     } catch (error) {
         console.error(error);
     }
   }
+  
+  useEffect(() => {
+    setStoredValue(readValue());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return [storedValue, setValue, clearValue];
 }
