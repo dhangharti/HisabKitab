@@ -193,8 +193,8 @@ export default function ProfilePage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="ne">à¤¨à¥‡à¤ªà¤¾à¤²à¥€</SelectItem>
-                        <SelectItem value="hi">à¤¹à¤¿à¤¨à¥à¤¦à¥€</SelectItem>
+                        <SelectItem value="ne">नेपाली</SelectItem>
+                        <SelectItem value="hi">हिन्दी</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
