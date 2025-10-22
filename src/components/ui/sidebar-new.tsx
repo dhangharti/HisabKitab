@@ -119,7 +119,7 @@ export const SidebarProvider = React.forwardRef<
         state,
         open,
         setOpen: handleSetOpen,
-        isMobile,
+        isMobile: isMobile ?? false,
         openMobile,
         setOpenMobile,
         toggleSidebar,
@@ -226,24 +226,14 @@ export const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, open, openMobile, setOpenMobile } = useSidebar()
-
-    if (collapsible === "none") {
-      return (
-        <div
-          className={cn(
-            "flex h-full w-[16rem] flex-col bg-card text-card-foreground",
-            className
-          )}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      )
-    }
     
-    // Guard against rendering on the server when mobile status is unknown
-    if (isMobile === undefined) {
+    // Hydration-safe rendering: Don't render sidebar content on server if mobile status is unknown
+    const [isMounted, setIsMounted] = React.useState(false);
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
       return null;
     }
 
@@ -416,5 +406,3 @@ export const SidebarInset = React.forwardRef<
     )
 })
 SidebarInset.displayName = "SidebarInset";
-
-    
